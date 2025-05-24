@@ -15,9 +15,13 @@ services:
       - FLASK_PORT=8000
       - STREAMLIT_HOST=0.0.0.0
       - STREAMLIT_PORT=8501
-      - API_BASE_URL=http://localhost:8000
+      - API_BASE_URL=http://localhost:8000  # For external access
+      - DOCKER_ENV=true
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
+      - DEFAULT_PAGE_SIZE=12
+      - MAX_PAGE_SIZE=100
+      - SCHEDULER_INTERVAL_HOURS=4
     env_file:
       - .env
     restart: unless-stopped
@@ -27,6 +31,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - cyberpulse-network
 
   # Optional: Add a reverse proxy for production
   nginx:
@@ -40,3 +46,9 @@ services:
     restart: unless-stopped
     profiles:
       - production
+    networks:
+      - cyberpulse-network
+
+networks:
+  cyberpulse-network:
+    driver: bridge

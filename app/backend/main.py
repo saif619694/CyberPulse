@@ -5,6 +5,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 import atexit
 import logging
 import traceback
+import os
 from typing import Dict, Any
 
 from app.backend.security_funded import get_data
@@ -13,11 +14,16 @@ from app.backend.models import PaginationParams, PaginatedResponse, CompanyData
 from app.shared.config import Config
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+
+# Configure CORS more specifically
+CORS(app, origins=["*"], methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Content-Type"])
 
 def create_query(search_term: str = None, filter_round: str = None) -> Dict[str, Any]:
     """Create MongoDB query from search and filter parameters"""
@@ -33,6 +39,7 @@ def create_query(search_term: str = None, filter_round: str = None) -> Dict[str,
     if filter_round:
         query['round'] = filter_round
     
+    logger.debug(f"Created query: {query}")
     return query
 
 def format_company_data(doc: Dict[str, Any]) -> Dict[str, Any]:
@@ -68,15 +75,58 @@ def format_company_data(doc: Dict[str, Any]) -> Dict[str, Any]:
         'reference': doc.get('reference', '')
     }
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Global exception handler"""
+    logger.error(f"Unhandled exception: {str(e)}")
+    logger.error(traceback.format_exc())
+    return jsonify({
+        'error': 'Internal server error',
+        'message': str(e) if app.debug else 'An unexpected error occurred'
+    }), 500
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'message': 'API is running'}), 200
+    """Enhanced health check endpoint"""
+    try:
+        # Test database connection
+        db_diagnostics = db_manager.test_connection()
+        
+        health_status = {
+            'status': 'healthy' if db_diagnostics['connected'] else 'unhealthy',
+            'timestamp': str(db_manager),
+            'database': {
+                'connected': db_diagnostics['connected'],
+                'database_name': db_diagnostics['database_name'],
+                'collection_name': db_diagnostics['collection_name'],
+                'document_count': db_diagnostics['document_count']
+            },
+            'environment': {
+                'flask_host': Config.FLASK_HOST,
+                'flask_port': Config.FLASK_PORT,
+                'api_base_url': Config.API_BASE_URL
+            }
+        }
+        
+        if db_diagnostics.get('error'):
+            health_status['database']['error'] = db_diagnostics['error']
+        
+        status_code = 200 if db_diagnostics['connected'] else 503
+        return jsonify(health_status), status_code
+        
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 503
 
 @app.route('/api/funding-data', methods=['GET'])
 def get_funding_data():
     """API endpoint to fetch paginated funding data"""
     try:
+        logger.info("Received funding data request")
+        
         # Parse query parameters
         params = PaginationParams(
             page=int(request.args.get('page', 1)),
@@ -87,11 +137,14 @@ def get_funding_data():
             filter_round=request.args.get('filterRound', '').strip() or None
         )
         
+        logger.info(f"Query params: page={params.page}, items_per_page={params.items_per_page}, sort={params.sort_field}, search='{params.search}', filter='{params.filter_round}'")
+        
         # Build query
         query = create_query(params.search, params.filter_round)
         
         # Get total count
         total_count = db_manager.count_documents(query)
+        logger.info(f"Total documents matching query: {total_count}")
         
         # Calculate pagination
         skip = params.get_skip()
@@ -105,6 +158,8 @@ def get_funding_data():
             skip, 
             params.items_per_page
         )
+        
+        logger.info(f"Retrieved {len(documents)} documents")
         
         # Format data
         formatted_data = [format_company_data(doc) for doc in documents]
@@ -123,21 +178,29 @@ def get_funding_data():
     except Exception as e:
         logger.error(f"Error fetching funding data: {str(e)}")
         logger.error(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'error': str(e),
+            'type': 'funding_data_error'
+        }), 500
 
 @app.route('/api/funding-rounds', methods=['GET'])
 def get_funding_rounds():
     """API endpoint to get unique funding rounds for filter"""
     try:
+        logger.info("Fetching funding rounds")
         rounds = db_manager.distinct('round')
         rounds = [r for r in rounds if r]  # Filter out empty values
         rounds.sort()
         
+        logger.info(f"Found {len(rounds)} unique funding rounds")
         return jsonify({'rounds': rounds}), 200
         
     except Exception as e:
         logger.error(f"Error fetching funding rounds: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'error': str(e),
+            'type': 'funding_rounds_error'
+        }), 500
 
 @app.route('/api/get_data', methods=['GET'])
 def api_get_data():
@@ -157,12 +220,17 @@ def api_get_data():
     except Exception as e:
         logger.error(f"Error in data collection: {str(e)}")
         logger.error(traceback.format_exc())
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": str(e),
+            "type": "data_collection_error"
+        }), 500
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     """API endpoint to get database statistics"""
     try:
+        logger.info("Fetching database statistics")
+        
         total_companies = db_manager.count_documents({})
         total_funding = 0
         
@@ -182,14 +250,43 @@ def get_stats():
         ]
         type_stats = list(collection.aggregate(type_pipeline))
         
-        return jsonify({
+        stats = {
             'total_companies': total_companies,
             'total_funding': total_funding,
             'funding_by_type': type_stats
-        }), 200
+        }
+        
+        logger.info(f"Stats: {total_companies} companies, ${total_funding:,} total funding")
+        return jsonify(stats), 200
         
     except Exception as e:
         logger.error(f"Error fetching stats: {str(e)}")
+        return jsonify({
+            'error': str(e),
+            'type': 'stats_error'
+        }), 500
+
+@app.route('/api/debug', methods=['GET'])
+def debug_info():
+    """Debug endpoint to check configuration and connections"""
+    try:
+        debug_data = {
+            'config': {
+                'flask_host': Config.FLASK_HOST,
+                'flask_port': Config.FLASK_PORT,
+                'api_base_url': Config.API_BASE_URL,
+                'db_name': Config.DB_NAME,
+                'collection_name': Config.COLLECTION_NAME
+            },
+            'environment': {
+                'docker_env': os.getenv('DOCKER_ENV', 'false'),
+                'flask_debug': Config.FLASK_DEBUG
+            },
+            'database': db_manager.test_connection()
+        }
+        
+        return jsonify(debug_data), 200
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 def scheduled_data_collection():
@@ -203,12 +300,16 @@ def scheduled_data_collection():
 
 def create_app():
     """Create and configure Flask app"""
+    logger.info("Initializing Flask application...")
+    
     # Initialize database connection
+    logger.info("Testing database connection...")
     if not db_manager.connect():
-        logger.error("Failed to connect to database")
-        raise Exception("Database connection failed")
+        logger.error("Failed to connect to database - API will continue but may not function properly")
+        # Don't raise exception - let the app start for debugging
     
     # Initialize and start the scheduler
+    logger.info("Starting background scheduler...")
     scheduler = BackgroundScheduler()
     scheduler.add_job(
         func=scheduled_data_collection,
@@ -223,8 +324,10 @@ def create_app():
     atexit.register(lambda: scheduler.shutdown())
     
     logger.info(f"Flask app created and configured on {Config.FLASK_HOST}:{Config.FLASK_PORT}")
+    logger.info(f"API base URL: {Config.API_BASE_URL}")
     return app
 
 if __name__ == '__main__':
     app = create_app()
+    logger.info(f"Starting Flask server on {Config.FLASK_HOST}:{Config.FLASK_PORT}")
     app.run(host=Config.FLASK_HOST, port=Config.FLASK_PORT, debug=Config.FLASK_DEBUG)

@@ -1,5 +1,6 @@
 import requests
 import logging
+import time
 from typing import Dict, Any, List, Optional
 from app.shared.config import Config
 
@@ -10,21 +11,83 @@ class APIClient:
         self.base_url = base_url or Config.API_BASE_URL
         self.session = requests.Session()
         self.session.timeout = 30  # 30 seconds timeout
+        
+        # Add retries for connection issues
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
+        
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+        
+        logger.info(f"API Client initialized with base URL: {self.base_url}")
     
     def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
-        """Make HTTP request to API"""
+        """Make HTTP request to API with better error handling"""
         url = f"{self.base_url}{endpoint}"
+        
+        logger.debug(f"Making {method} request to: {url}")
         
         try:
             response = self.session.request(method, url, **kwargs)
+            logger.debug(f"Response status: {response.status_code}")
             response.raise_for_status()
+            
+            # Handle empty responses
+            if not response.content:
+                return {}
+                
             return response.json()
+            
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection failed to {url}: {str(e)}")
+            raise Exception(f"Cannot connect to backend API at {url}. Is the backend server running?")
+            
+        except requests.exceptions.Timeout as e:
+            logger.error(f"Request timeout to {url}: {str(e)}")
+            raise Exception(f"Request timeout. Backend server may be overloaded.")
+            
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP error {response.status_code} for {url}: {str(e)}")
+            try:
+                error_detail = response.json().get('error', str(e))
+            except:
+                error_detail = str(e)
+            raise Exception(f"API request failed: {error_detail}")
+            
         except requests.exceptions.RequestException as e:
-            logger.error(f"API request failed: {method} {url} - {str(e)}")
+            logger.error(f"Request failed to {url}: {str(e)}")
             raise Exception(f"API request failed: {str(e)}")
+            
         except ValueError as e:
-            logger.error(f"Failed to parse JSON response: {str(e)}")
-            raise Exception("Invalid response format")
+            logger.error(f"Failed to parse JSON response from {url}: {str(e)}")
+            logger.debug(f"Response content: {response.text[:500]}")
+            raise Exception("Invalid response format from API")
+    
+    def test_connection(self) -> Dict[str, Any]:
+        """Test API connection with detailed diagnostics"""
+        diagnostics = {
+            "base_url": self.base_url,
+            "health_check": False,
+            "connection_error": None,
+            "response_time": None
+        }
+        
+        try:
+            start_time = time.time()
+            result = self._make_request('GET', '/api/health')
+            diagnostics["response_time"] = time.time() - start_time
+            diagnostics["health_check"] = result.get('status') == 'healthy'
+            diagnostics["response"] = result
+        except Exception as e:
+            diagnostics["connection_error"] = str(e)
+            
+        return diagnostics
     
     def get_funding_data(self, 
                         page: int = 1,
@@ -46,6 +109,7 @@ class APIClient:
         if filter_round:
             params['filterRound'] = filter_round
         
+        logger.info(f"Fetching funding data: page={page}, items={items_per_page}")
         return self._make_request('GET', '/api/funding-data', params=params)
     
     def get_funding_rounds(self) -> List[str]:
@@ -55,6 +119,7 @@ class APIClient:
     
     def trigger_data_collection(self) -> Dict[str, Any]:
         """Trigger fresh data collection"""
+        logger.info("Triggering data collection...")
         return self._make_request('GET', '/api/get_data')
     
     def get_stats(self) -> Dict[str, Any]:
@@ -66,7 +131,8 @@ class APIClient:
         try:
             response = self._make_request('GET', '/api/health')
             return response.get('status') == 'healthy'
-        except:
+        except Exception as e:
+            logger.warning(f"Health check failed: {str(e)}")
             return False
 
 # Global API client instance
