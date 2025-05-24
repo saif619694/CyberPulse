@@ -15,7 +15,6 @@ from app.frontend.components.data_display import (
     display_pagination_info,
     display_no_data_message
 )
-from app.frontend.components.sidebar import display_sidebar, get_sidebar_state
 from app.frontend.utils.api_client import api_client
 from app.frontend.utils.formatters import display_loading_animation
 from app.shared.config import Config
@@ -25,7 +24,7 @@ st.set_page_config(
     page_title="CyberPulse - Funding Intelligence",
     page_icon="🛡️",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
     menu_items={
         'Get Help': 'https://github.com/cyberpulse',
         'Report a bug': 'https://github.com/cyberpulse/issues',
@@ -33,9 +32,9 @@ st.set_page_config(
     }
 )
 
-# Load custom CSS
+# Load custom CSS with deep black professional theme
 def load_custom_css():
-    """Load custom CSS styling"""
+    """Load custom CSS styling with deep black professional theme"""
     st.markdown("""
     <style>
     /* Import Google Fonts */
@@ -43,8 +42,8 @@ def load_custom_css():
     
     /* Global Styles */
     .main .block-container {
-        max-width: 1200px;
-        padding-top: 2rem;
+        max-width: 1400px;
+        padding-top: 1rem;
         padding-bottom: 2rem;
     }
     
@@ -52,103 +51,262 @@ def load_custom_css():
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+    .stDeployButton {visibility: hidden;}
     
-    /* Custom background */
+    /* Deep Black Professional Background */
     .stApp {
-        background: radial-gradient(ellipse at top, rgba(139, 69, 255, 0.1) 0%, rgba(0, 0, 0, 1) 50%);
-        color: white;
+        background: #000000;
+        color: #ffffff;
         font-family: 'Inter', sans-serif;
     }
     
-    /* Sidebar styling */
-    .css-1d391kg {
-        background: linear-gradient(180deg, rgba(15, 15, 15, 0.95) 0%, rgba(30, 30, 30, 0.9) 100%);
-        border-right: 1px solid rgba(139, 69, 255, 0.2);
+    /* Main content area */
+    .main {
+        background: #000000;
     }
     
-    /* Button styling */
+    /* Professional Header Styling */
+    .professional-header {
+        background: linear-gradient(135deg, #111111 0%, #1a1a1a 100%);
+        border: 1px solid #333333;
+        border-radius: 16px;
+        padding: 40px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    
+    .header-title {
+        font-size: 3.5rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #00ff88 0%, #00ccff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 16px;
+        text-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+    }
+    
+    .header-subtitle {
+        font-size: 1.2rem;
+        color: #cccccc;
+        margin-bottom: 24px;
+        font-weight: 400;
+    }
+    
+    /* Control Panel Styling */
+    .control-panel {
+        background: linear-gradient(145deg, #111111 0%, #1a1a1a 100%);
+        border: 1px solid #333333;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Stats Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin: 24px 0;
+    }
+    
+    .stat-card {
+        background: linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 100%);
+        border: 1px solid #333333;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        border-color: #00ff88;
+        box-shadow: 0 4px 20px rgba(0, 255, 136, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #00ff88;
+        margin-bottom: 8px;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: #888888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    /* Button Styling */
     .stButton > button {
-        background: linear-gradient(135deg, #8B45FF 0%, #FF6B35 100%);
-        color: white;
+        background: linear-gradient(135deg, #00ff88 0%, #00ccff 100%);
+        color: #000000;
         border: none;
         border-radius: 8px;
         font-weight: 600;
+        padding: 12px 24px;
         transition: all 0.3s ease;
+        box-shadow: 0 4px 16px rgba(0, 255, 136, 0.3);
     }
     
     .stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(139, 69, 255, 0.3);
+        box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
+        background: linear-gradient(135deg, #00ccff 0%, #00ff88 100%);
     }
     
-    /* Input styling */
+    /* Input Styling */
     .stTextInput > div > div > input {
-        background: rgba(0, 0, 0, 0.6);
-        border: 1px solid rgba(139, 69, 255, 0.3);
+        background: #0a0a0a;
+        border: 2px solid #333333;
         border-radius: 8px;
-        color: white;
+        color: #ffffff;
+        font-size: 16px;
+        padding: 12px;
+    }
+    
+    .stTextInput > div > div > input:focus {
+        border-color: #00ff88;
+        box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
     }
     
     .stSelectbox > div > div > select {
-        background: rgba(0, 0, 0, 0.6);
-        border: 1px solid rgba(139, 69, 255, 0.3);
+        background: #0a0a0a;
+        border: 2px solid #333333;
         border-radius: 8px;
-        color: white;
+        color: #ffffff;
+        font-size: 16px;
+        padding: 12px;
     }
     
-    /* Metric styling */
-    .metric-container {
-        background: linear-gradient(145deg, rgba(15, 15, 15, 0.9) 0%, rgba(30, 30, 30, 0.8) 100%);
-        border: 1px solid rgba(139, 69, 255, 0.2);
+    .stSelectbox > div > div > select:focus {
+        border-color: #00ff88;
+        box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
+    }
+    
+    /* Card Container */
+    .funding-card {
+        background: linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 100%);
+        border: 1px solid #333333;
         border-radius: 12px;
-        padding: 20px;
-        text-align: center;
+        padding: 24px;
+        margin-bottom: 16px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+    
+    .funding-card:hover {
+        border-color: #00ff88;
+        box-shadow: 0 8px 32px rgba(0, 255, 136, 0.1);
+        transform: translateY(-2px);
     }
     
     /* Tab styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
+        background: #111111;
+        border-radius: 8px;
+        padding: 4px;
     }
     
     .stTabs [data-baseweb="tab"] {
-        background: rgba(0, 0, 0, 0.6);
-        border: 1px solid rgba(139, 69, 255, 0.3);
-        border-radius: 8px;
-        color: white;
+        background: #1a1a1a;
+        border: 1px solid #333333;
+        border-radius: 6px;
+        color: #cccccc;
+        font-weight: 500;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background: #333333;
+        color: #ffffff;
     }
     
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #8B45FF 0%, #FF6B35 100%);
+        background: linear-gradient(135deg, #00ff88 0%, #00ccff 100%);
+        color: #000000;
+        border-color: #00ff88;
     }
     
-    /* Custom animations */
+    /* DataFrame styling */
+    .stDataFrame {
+        background: #0a0a0a;
+        border-radius: 8px;
+        border: 1px solid #333333;
+    }
+    
+    /* Success/Error Messages */
+    .stSuccess {
+        background: linear-gradient(145deg, #003d1f 0%, #004d28 100%);
+        border: 1px solid #00ff88;
+        color: #00ff88;
+    }
+    
+    .stError {
+        background: linear-gradient(145deg, #4d0000 0%, #660000 100%);
+        border: 1px solid #ff4444;
+        color: #ff8888;
+    }
+    
+    .stWarning {
+        background: linear-gradient(145deg, #4d3300 0%, #664400 100%);
+        border: 1px solid #ffaa00;
+        color: #ffcc88;
+    }
+    
+    /* Pagination */
+    .pagination-info {
+        background: #111111;
+        border: 1px solid #333333;
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+        margin: 16px 0;
+        color: #cccccc;
+    }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #111111;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #333333;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555555;
+    }
+    
+    /* Animation keyframes */
     @keyframes pulse {
         0% { opacity: 1; }
         50% { opacity: 0.7; }
         100% { opacity: 1; }
     }
     
+    @keyframes glow {
+        0% { box-shadow: 0 0 5px rgba(0, 255, 136, 0.3); }
+        50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+        100% { box-shadow: 0 0 5px rgba(0, 255, 136, 0.3); }
+    }
+    
     .pulse {
         animation: pulse 2s infinite;
     }
     
-    /* Error and success message styling */
-    .stAlert {
-        border-radius: 8px;
-        border: 1px solid rgba(139, 69, 255, 0.3);
-    }
-    
-    /* DataFrame styling */
-    .stDataFrame {
-        background: rgba(0, 0, 0, 0.6);
-        border-radius: 8px;
-        border: 1px solid rgba(139, 69, 255, 0.2);
-    }
-    
-    /* Plotly chart container */
-    .js-plotly-plot {
-        border-radius: 8px;
-        border: 1px solid rgba(139, 69, 255, 0.2);
+    .glow {
+        animation: glow 2s infinite;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -164,180 +322,252 @@ def initialize_session_state():
         'view_mode': 'cards',
         'items_per_page': 12,
         'available_rounds': [],
-        'last_refresh': time.time()
+        'last_refresh': time.time(),
+        'api_stats': None
     }
     
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
-def load_available_rounds():
-    """Load available funding rounds"""
+def display_professional_header():
+    """Display professional header with integrated stats"""
+    
+    # Header section
+    st.markdown("""
+    <div class="professional-header">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 24px;">
+            <div style="font-size: 3rem;">🛡️</div>
+            <h1 class="header-title">CYBERPULSE</h1>
+        </div>
+        <p class="header-subtitle">Real-time cybersecurity funding intelligence and market analytics</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Stats and controls
+    col1, col2, col3 = st.columns([2, 1, 2])
+    
+    with col2:
+        if st.button("🔄 Refresh Data", use_container_width=True, help="Collect latest funding data"):
+            with st.spinner("🔄 Collecting fresh intelligence..."):
+                try:
+                    result = api_client.trigger_data_collection()
+                    st.success("✅ Data refresh completed!")
+                    if 'details' in result:
+                        details = result['details']
+                        st.info(f"📊 Processed: {details.get('processed', 0)} | "
+                               f"Skipped: {details.get('skipped', 0)}")
+                    time.sleep(1)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Refresh failed: {str(e)}")
+
+def display_stats_dashboard():
+    """Display stats dashboard integrated into main page"""
     try:
-        rounds = api_client.get_funding_rounds()
-        st.session_state.available_rounds = rounds
-        return rounds
+        stats = api_client.get_stats()
+        st.session_state.api_stats = stats
+        
+        total_companies = stats.get('total_companies', 0)
+        total_funding = stats.get('total_funding', 0)
+        
+        # Format funding amount
+        if total_funding >= 1000000000:
+            funding_display = f"${total_funding / 1000000000:.1f}B"
+        elif total_funding >= 1000000:
+            funding_display = f"${total_funding / 1000000:.1f}M"
+        else:
+            funding_display = f"${total_funding:,.0f}"
+        
+        # Stats grid
+        stats_html = f"""
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{total_companies:,}</div>
+                <div class="stat-label">Total Companies</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{funding_display}</div>
+                <div class="stat-label">Total Funding</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">Live</div>
+                <div class="stat-label">Data Feed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{'🟢' if api_client.health_check() else '🔴'}</div>
+                <div class="stat-label">API Status</div>
+            </div>
+        </div>
+        """
+        st.markdown(stats_html, unsafe_allow_html=True)
+        
     except Exception as e:
-        logger.error(f"Failed to load funding rounds: {str(e)}")
-        st.error("Failed to load funding rounds")
-        return []
+        logger.error(f"Failed to load stats: {str(e)}")
+        st.markdown("""
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">---</div>
+                <div class="stat-label">Loading Stats...</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+def display_control_panel():
+    """Display integrated control panel"""
+    
+    st.markdown('<div class="control-panel">', unsafe_allow_html=True)
+    
+    # Row 1: Search and Filter
+    st.markdown("#### 🔍 Search & Filter")
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        search_term = st.text_input(
+            "",
+            value=st.session_state.search_term,
+            placeholder="Search companies, descriptions, technologies...",
+            help="Search across company names, descriptions, and company types",
+            label_visibility="collapsed"
+        )
+    
+    with col2:
+        # Load available rounds if not loaded
+        if not st.session_state.available_rounds:
+            try:
+                rounds = api_client.get_funding_rounds()
+                st.session_state.available_rounds = rounds
+            except:
+                st.session_state.available_rounds = []
+        
+        round_options = ["All Rounds"] + sorted(st.session_state.available_rounds)
+        current_round_display = st.session_state.filter_round if st.session_state.filter_round else "All Rounds"
+        
+        selected_round = st.selectbox(
+            "",
+            round_options,
+            index=round_options.index(current_round_display) if current_round_display in round_options else 0,
+            help="Filter by funding round type",
+            label_visibility="collapsed"
+        )
+        
+        # Convert back to API format
+        filter_round = "" if selected_round == "All Rounds" else selected_round
+    
+    # Row 2: Sort and View Controls
+    st.markdown("---")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        sort_field = st.selectbox(
+            "Sort by",
+            ["date", "company_name", "amount"],
+            index=["date", "company_name", "amount"].index(st.session_state.sort_field),
+            format_func=lambda x: {
+                "date": "📅 Date",
+                "company_name": "🏢 Company Name", 
+                "amount": "💰 Funding Amount"
+            }[x]
+        )
+    
+    with col2:
+        sort_direction = st.selectbox(
+            "Order",
+            ["desc", "asc"],
+            index=0 if st.session_state.sort_direction == "desc" else 1,
+            format_func=lambda x: "📉 Newest First" if x == "desc" else "📈 Oldest First"
+        )
+    
+    with col3:
+        items_per_page = st.selectbox(
+            "Items per page",
+            [6, 12, 24, 48],
+            index=[6, 12, 24, 48].index(st.session_state.items_per_page),
+            help="Number of companies to display per page"
+        )
+        st.session_state.items_per_page = items_per_page
+    
+    with col4:
+        view_mode = st.selectbox(
+            "View mode",
+            ["cards", "table", "chart"],
+            index=["cards", "table", "chart"].index(st.session_state.view_mode),
+            format_func=lambda x: {
+                "cards": "📋 Cards",
+                "table": "📊 Table",
+                "chart": "📈 Charts"
+            }[x]
+        )
+        st.session_state.view_mode = view_mode
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Check if parameters changed
+    params_changed = (
+        search_term != st.session_state.search_term or
+        filter_round != st.session_state.filter_round or
+        sort_field != st.session_state.sort_field or
+        sort_direction != st.session_state.sort_direction
+    )
+    
+    if params_changed:
+        st.session_state.search_term = search_term
+        st.session_state.filter_round = filter_round
+        st.session_state.sort_field = sort_field
+        st.session_state.sort_direction = sort_direction
+        st.session_state.current_page = 1  # Reset to first page
+        st.rerun()
 
 def fetch_funding_data():
     """Fetch funding data from API"""
     try:
-        sidebar_state = get_sidebar_state()
-        
-        # Use sidebar preferences
-        items_per_page = sidebar_state.get('items_per_page', st.session_state.items_per_page)
-        
         response = api_client.get_funding_data(
             page=st.session_state.current_page,
-            items_per_page=items_per_page,
+            items_per_page=st.session_state.items_per_page,
             sort_field=st.session_state.sort_field,
             sort_direction=st.session_state.sort_direction,
             search=st.session_state.search_term or None,
             filter_round=st.session_state.filter_round or None
         )
-        
         return response
-        
     except Exception as e:
         logger.error(f"Failed to fetch funding data: {str(e)}")
         st.error(f"Failed to fetch data: {str(e)}")
         return None
 
-def handle_search_change():
-    """Handle search parameter changes"""
-    st.session_state.current_page = 1  # Reset to first page when search changes
-
-def display_main_content():
-    """Display main application content"""
+def display_pagination_controls(current_page, total_pages):
+    """Display pagination controls"""
+    if total_pages <= 1:
+        return
     
-    # Header
-    display_header()
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
     
-    # Load available rounds if not loaded
-    if not st.session_state.available_rounds:
-        load_available_rounds()
+    with col1:
+        if st.button("⏮️ First", disabled=(current_page <= 1)):
+            st.session_state.current_page = 1
+            st.rerun()
     
-    # Search and filter controls
-    st.markdown("## 🔍 Search & Filter")
+    with col2:
+        if st.button("◀️ Previous", disabled=(current_page <= 1)):
+            st.session_state.current_page = current_page - 1
+            st.rerun()
     
-    # Get current values from session state
-    current_search = st.session_state.search_term
-    current_round = st.session_state.filter_round
+    with col3:
+        # Page info
+        st.markdown(f"""
+        <div class="pagination-info">
+            Page <strong>{current_page}</strong> of <strong>{total_pages}</strong>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # Display search controls
-    search_term, filter_round = display_search_filters(
-        st.session_state.available_rounds,
-        0  # Will be updated after data fetch
-    )
+    with col4:
+        if st.button("▶️ Next", disabled=(current_page >= total_pages)):
+            st.session_state.current_page = current_page + 1
+            st.rerun()
     
-    # Check if search parameters changed
-    if search_term != current_search or filter_round != current_round:
-        st.session_state.search_term = search_term
-        st.session_state.filter_round = filter_round
-        handle_search_change()
-        st.rerun()
-    
-    # Sort controls
-    st.markdown("---")
-    sort_field, sort_direction = display_sort_controls()
-    
-    # Check if sort parameters changed
-    if (sort_field != st.session_state.sort_field or 
-        sort_direction != st.session_state.sort_direction):
-        st.session_state.sort_field = sort_field
-        st.session_state.sort_direction = sort_direction
-        handle_search_change()
-        st.rerun()
-    
-    st.markdown("---")
-    
-    # Fetch and display data
-    with st.spinner("Loading funding data..."):
-        data_response = fetch_funding_data()
-    
-    if data_response:
-        companies = data_response.get('data', [])
-        total_count = data_response.get('totalCount', 0)
-        total_pages = data_response.get('totalPages', 1)
-        current_page = data_response.get('currentPage', 1)
-        items_per_page = data_response.get('itemsPerPage', 12)
-        
-        # Update search results counter
-        if companies:
-            st.success(f"✅ Found {total_count:,} companies")
-        
-        # Display pagination info
-        if total_pages > 1:
-            display_pagination_info(current_page, total_pages, items_per_page, total_count)
-        
-        # Pagination controls
-        if total_pages > 1:
-            col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
-            
-            with col1:
-                if st.button("⏮️ First", disabled=(current_page <= 1)):
-                    st.session_state.current_page = 1
-                    st.rerun()
-            
-            with col2:
-                if st.button("◀️ Previous", disabled=(current_page <= 1)):
-                    st.session_state.current_page = current_page - 1
-                    st.rerun()
-            
-            with col3:
-                # Page selector
-                page_options = list(range(1, min(total_pages + 1, 11)))  # Show max 10 pages
-                if current_page not in page_options and current_page <= total_pages:
-                    page_options.append(current_page)
-                    page_options.sort()
-                
-                selected_page = st.selectbox(
-                    f"Page {current_page} of {total_pages}",
-                    page_options,
-                    index=page_options.index(current_page) if current_page in page_options else 0,
-                    label_visibility="collapsed"
-                )
-                
-                if selected_page != current_page:
-                    st.session_state.current_page = selected_page
-                    st.rerun()
-            
-            with col4:
-                if st.button("▶️ Next", disabled=(current_page >= total_pages)):
-                    st.session_state.current_page = current_page + 1
-                    st.rerun()
-            
-            with col5:
-                if st.button("⏭️ Last", disabled=(current_page >= total_pages)):
-                    st.session_state.current_page = total_pages
-                    st.rerun()
-        
-        # Display data
-        st.markdown("---")
-        display_funding_data(companies, st.session_state.view_mode)
-        
-        # Bottom pagination for long lists
-        if total_pages > 1 and len(companies) > 6:
-            st.markdown("---")
-            display_pagination_info(current_page, total_pages, items_per_page, total_count)
-    
-    else:
-        display_no_data_message()
-
-def auto_refresh_handler():
-    """Handle auto-refresh functionality"""
-    sidebar_state = get_sidebar_state()
-    
-    if sidebar_state.get('auto_refresh', False):
-        # Check if 5 minutes have passed since last refresh
-        current_time = time.time()
-        last_refresh = st.session_state.get('last_refresh', 0)
-        
-        if current_time - last_refresh > 300:  # 5 minutes
-            st.session_state.last_refresh = current_time
+    with col5:
+        if st.button("⏭️ Last", disabled=(current_page >= total_pages)):
+            st.session_state.current_page = total_pages
             st.rerun()
 
 def main():
@@ -349,29 +579,60 @@ def main():
     # Initialize session state
     initialize_session_state()
     
-    # Display sidebar
-    display_sidebar()
+    # Professional header with integrated features
+    display_professional_header()
     
-    # Auto-refresh handler
-    auto_refresh_handler()
+    # Stats dashboard
+    display_stats_dashboard()
+    
+    # Control panel
+    display_control_panel()
     
     # Main content
-    try:
-        display_main_content()
-    except Exception as e:
-        logger.error(f"Application error: {str(e)}")
-        st.error("An unexpected error occurred. Please refresh the page.")
+    st.markdown("---")
+    
+    # Fetch and display data
+    with st.spinner("Loading funding intelligence..."):
+        data_response = fetch_funding_data()
+    
+    if data_response:
+        companies = data_response.get('data', [])
+        total_count = data_response.get('totalCount', 0)
+        total_pages = data_response.get('totalPages', 1)
+        current_page = data_response.get('currentPage', 1)
+        items_per_page = data_response.get('itemsPerPage', 12)
         
-        # Debug information in expander
-        with st.expander("🐛 Debug Information"):
-            st.code(str(e))
+        # Results info
+        if companies:
+            start_item = (current_page - 1) * items_per_page + 1
+            end_item = min(current_page * items_per_page, total_count)
+            
+            st.markdown(f"""
+            <div class="pagination-info">
+                Showing <strong>{start_item}</strong> to <strong>{end_item}</strong> of <strong>{total_count:,}</strong> results
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Pagination controls
+        display_pagination_controls(current_page, total_pages)
+        
+        # Display data
+        st.markdown("---")
+        display_funding_data(companies, st.session_state.view_mode)
+        
+        # Bottom pagination for long lists
+        if total_pages > 1 and len(companies) > 6:
+            st.markdown("---")
+            display_pagination_controls(current_page, total_pages)
+    else:
+        display_no_data_message()
     
     # Footer
     st.markdown("---")
     st.markdown("""
-    <div style="text-align: center; color: #6B7280; padding: 20px 0;">
-        <p>🛡️ <strong>CyberPulse</strong> - Real-time cybersecurity funding intelligence</p>
-        <p style="font-size: 0.875rem;">Built with ❤️ using Streamlit & Flask</p>
+    <div style="text-align: center; color: #666666; padding: 20px 0; border-top: 1px solid #333333;">
+        <p style="margin: 0;"><strong>CyberPulse</strong> - Real-time cybersecurity funding intelligence</p>
+        <p style="margin: 8px 0 0 0; font-size: 0.9rem;">Built with modern technology for security professionals</p>
     </div>
     """, unsafe_allow_html=True)
 
