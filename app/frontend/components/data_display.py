@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from typing import List, Dict, Any
 import sys
 import os
+import html
 
 # Add the project root to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
@@ -33,8 +34,8 @@ def get_round_color(round_name: str) -> str:
     """Get color for funding round badge"""
     colors = {
         'Pre-Seed': '#ff6b35',      # orange
-        'Seed': '#00ff88',          # green
-        'Series A': '#00ccff',      # cyan
+        'Seed': '#00ccff',          # cyan/blue
+        'Series A': '#00ff88',      # green
         'Series B': '#ff4081',      # pink
         'Series C': '#ffa726',      # amber
         'Series D': '#ab47bc',      # purple
@@ -49,224 +50,253 @@ def get_round_color(round_name: str) -> str:
     return colors.get(round_name, '#888888')  # default gray
 
 def display_funding_card(company: Dict[str, Any]):
-    """Display a single funding card using proper Streamlit components"""
+    """Display a single funding card with modern layout matching the reference design"""
     
-    # Use streamlit container instead of raw HTML
-    with st.container():
-        # Card styling with CSS class
-        st.markdown(f"""
-        <div class="funding-card" style="
-            background: linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 100%);
-            border: 1px solid #333333;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 16px;
+    # Prepare dynamic content
+    company_name = company.get('company_name', 'Unknown Company')
+    round_name = company.get('round', 'Unknown Round')
+    round_color = get_round_color(round_name)
+    amount_display = format_amount(company.get('amount', 0)) if company.get('amount', 0) > 0 else 'Undisclosed'
+    date_display = format_date(company.get('date', ''))
+    description_display = company.get('description', 'No description available.')[:200]
+    if len(company.get('description', '')) > 200:
+        description_display += '...'
+    company_type_display = company.get('company_type', 'Unknown')
+    investors_count = len(company.get('investors', []))
+    investors_text = f"{investors_count} investor{'s' if investors_count != 1 else ''}"
+    source_value = company.get('source', 'Unknown')
+    source_display = f'<a href="{html.unescape(source_value)}" target="_blank" style="color: #ffffff; text-decoration: none;">{html.unescape(source_value)}</a>' if source_value.startswith('http') else html.unescape(source_value)
+
+    # Construct Website button HTML
+    website_button_html = ""
+    if company.get('company_url'):
+        website_button_html = f'''
+        <a href="{html.unescape(company.get('company_url', ''))}" target="_blank" style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+            color: #000000;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            border: none;
+            box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+        " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(255, 255, 255, 0.2)'"
+           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(255, 255, 255, 0.1)'">
+            <span style="font-size: 0.9rem;">🔗</span>
+            Website
+        </a>
+        '''
+    else:
+        website_button_html = '''
+        <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #333333;
+            color: #888888;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: not-allowed;
         ">
-        """, unsafe_allow_html=True)
-        
-        # Company name and round - using columns for better control
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            st.markdown(f"""
-            <h3 style="color: #ffffff; font-size: 1.4rem; font-weight: bold; margin: 0 0 12px 0;">
-                {company.get('company_name', 'Unknown Company')}
-            </h3>
-            """, unsafe_allow_html=True)
-            
-            round_color = get_round_color(company.get('round', ''))
-            st.markdown(f"""
-            <span style="
-                background: {round_color}20;
-                color: {round_color};
-                border: 1px solid {round_color}40;
-                padding: 6px 12px;
-                border-radius: 16px;
-                font-size: 0.85rem;
-                font-weight: 600;
-                display: inline-block;
-            ">
-                {company.get('round', 'Unknown Round')}
-            </span>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            amount = company.get('amount', 0)
-            amount_display = format_amount(amount) if amount > 0 else 'Undisclosed'
-            
-            st.markdown(f"""
-            <div style="text-align: right;">
+            <span style="font-size: 0.9rem;">🔗</span>
+            No Website
+        </div>
+        '''
+
+    # Construct Story button HTML
+    story_button_html = ""
+    if company.get('story_link'):
+        story_button_html = f'''
+        <a href="{html.unescape(company.get('story_link', ''))}" target="_blank" style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+            color: #000000;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+        " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(255, 255, 255, 0.2)'"
+           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(255, 255, 255, 0.1)'">
+            <span style="font-size: 0.9rem;">📰</span>
+            Story
+        </a>
+        '''
+    else:
+        story_button_html = '''
+        <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #333333;
+            color: #888888;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: not-allowed;
+        ">
+            <span style="font-size: 0.9rem;">📰</span>
+            No Story
+        </div>
+        '''
+    
+    # Construct Key Investors HTML
+    key_investors_html = ""
+    if company.get('investors'):
+        key_investors_html = f'''
+        <div style="
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #333333;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 16px 0;
+        ">
+            <div style="color: #888888; font-size: 0.8rem; margin-bottom: 6px;">Key Investors:</div>
+            <div style="color: #cccccc; font-size: 0.85rem; line-height: 1.4;">
+                {", ".join([inv.get("name", str(inv)) if isinstance(inv, dict) else str(inv) for inv in company.get("investors", [])[:3]])}
+                {" +{}more".format(len(company.get("investors", [])) - 3) if len(company.get("investors", [])) > 3 else ""}
+            </div>
+        </div>
+        '''
+
+    # Main card HTML template
+    card_html_template = """
+    <div style="
+        background: linear-gradient(145deg, #1a1a1a 0%, #0f0f0f 100%);
+        border: 1px solid #333333;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        position: relative;
+        overflow: hidden;
+    ">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+            <div style="flex: 1;">
+                <h2 style="
+                    color: #ffffff;
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    margin: 0 0 8px 0;
+                    letter-spacing: -0.02em;
+                ">
+                    {company_name}
+                </h2>
+                <span style="
+                    background: {round_color}40;
+                    color: {round_color};
+                    border: 1px solid {round_color}60;
+                    padding: 6px 14px;
+                    border-radius: 20px;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    display: inline-block;
+                ">
+                    {round_name}
+                </span>
+            </div>
+            <div style="text-align: right; margin-left: 20px;">
                 <div style="
-                    font-size: 1.6rem;
-                    font-weight: bold;
+                    font-size: 1.75rem;
+                    font-weight: 700;
                     color: #00ff88;
                     margin-bottom: 4px;
+                    letter-spacing: -0.02em;
                 ">
                     {amount_display}
                 </div>
-                <div style="color: #888888; font-size: 0.9rem;">
-                    📅 {format_date(company.get('date', ''))}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Description
-        description = company.get('description', 'No description available.')
-        if len(description) > 200:
-            description = description[:200] + '...'
-        
-        st.markdown(f"""
-        <p style="
-            color: #cccccc; 
-            font-size: 0.95rem; 
-            line-height: 1.6; 
-            margin: 16px 0; 
-            min-height: 60px;
-            background: #111111;
-            padding: 12px;
-            border-radius: 8px;
-            border-left: 3px solid #00ff88;
-        ">
-            {description}
-        </p>
-        """, unsafe_allow_html=True)
-        
-        # Company details
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown(f"""
-            <div style="margin-bottom: 12px;">
-                <span style="color: #00ccff;">🏢 Type:</span>
-                <span style="color: #ffffff; font-weight: 500; margin-left: 8px;">
-                    {company.get('company_type', 'Unknown')}
-                </span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div style="margin-bottom: 12px;">
-                <span style="color: #ff6b35;">🌐 Source:</span>
-                <span style="color: #ffffff; font-weight: 500; margin-left: 8px;">
-                    {company.get('source', 'Unknown')}
-                </span>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            # Investors
-            investors = company.get('investors', [])
-            investor_count = len(investors)
-            
-            st.markdown(f"""
-            <div style="margin-bottom: 12px;">
-                <span style="color: #ab47bc;">👥 Investors:</span>
-                <span style="color: #ffffff; font-weight: 500; margin-left: 8px;">
-                    {investor_count} investor{'s' if investor_count != 1 else ''}
-                </span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Show top investors
-            if investors:
-                top_investors = investors[:3]
-                investor_names = []
-                for inv in top_investors:
-                    if isinstance(inv, dict):
-                        investor_names.append(inv.get('name', 'Unknown'))
-                    else:
-                        investor_names.append(str(inv))
-                
-                investor_text = ', '.join(investor_names)
-                if len(investors) > 3:
-                    investor_text += f' +{len(investors) - 3} more'
-                
-                st.markdown(f"""
                 <div style="
-                    font-size: 0.85rem; 
-                    color: #888888; 
-                    background: #0a0a0a; 
-                    padding: 8px; 
-                    border-radius: 6px;
-                    border: 1px solid #333333;
-                ">
-                    {investor_text}
-                </div>
-                """, unsafe_allow_html=True)
-        
-        # Action buttons
-        st.markdown("---")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            company_url = company.get('company_url', '')
-            if company_url:
-                st.markdown(f"""
-                <a href="{company_url}" target="_blank" style="
-                    display: block;
-                    text-align: center;
-                    background: linear-gradient(135deg, #00ff88 0%, #00ccff 100%);
-                    color: #000000;
-                    padding: 10px;
-                    border-radius: 6px;
-                    text-decoration: none;
-                    font-weight: 600;
-                    transition: all 0.3s ease;
-                " onmouseover="this.style.transform='translateY(-2px)'" 
-                   onmouseout="this.style.transform='translateY(0)'">
-                    🔗 Visit Website
-                </a>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown("""
-                <div style="
-                    text-align: center;
-                    background: #333333;
                     color: #888888;
-                    padding: 10px;
-                    border-radius: 6px;
+                    font-size: 0.9rem;
                     font-weight: 500;
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-end;
+                    gap: 6px;
                 ">
-                    No Website
+                    <span style="font-size: 0.8rem;">📅</span>
+                    {date_display}
                 </div>
-                """, unsafe_allow_html=True)
-        
-        with col2:
-            story_link = company.get('story_link', '')
-            if story_link:
-                st.markdown(f"""
-                <a href="{story_link}" target="_blank" style="
-                    display: block;
-                    text-align: center;
-                    background: linear-gradient(135deg, #ff6b35 0%, #ffa726 100%);
-                    color: #000000;
-                    padding: 10px;
-                    border-radius: 6px;
-                    text-decoration: none;
-                    font-weight: 600;
-                    transition: all 0.3s ease;
-                " onmouseover="this.style.transform='translateY(-2px)'" 
-                   onmouseout="this.style.transform='translateY(0)'">
-                    📰 Read Story
-                </a>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown("""
-                <div style="
-                    text-align: center;
-                    background: #333333;
-                    color: #888888;
-                    padding: 10px;
-                    border-radius: 6px;
-                    font-weight: 500;
-                ">
-                    No Story
-                </div>
-                """, unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+            </div>
+        </div>
+        <div style="margin: 20px 0;">
+            <p style="
+                color: #cccccc;
+                font-size: 0.95rem;
+                line-height: 1.5;
+                margin: 0;
+                text-align: justify;
+            ">
+                {description_display}
+            </p>
+        </div>
+        <div style="margin: 20px 0; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #00ccff; font-size: 1rem;">🏢</span>
+                <span style="color: #888888; font-size: 0.9rem; font-weight: 500;">Type:</span>
+                <span style="color: #ffffff; font-weight: 600; font-size: 0.9rem;">
+                    {company_type_display}
+                </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #ab47bc; font-size: 1rem;">👥</span>
+                <span style="color: #888888; font-size: 0.9rem; font-weight: 500;">Investors:</span>
+                <span style="color: #ffffff; font-weight: 600; font-size: 0.9rem;">
+                    {investors_text}
+                </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #ff6b35; font-size: 1rem;">🌐</span>
+                <span style="color: #888888; font-size: 0.9rem; font-weight: 500;">Source:</span>
+                <span style="color: #ffffff; font-weight: 600; font-size: 0.9rem;">
+                    {source_display}
+                </span>
+            </div>
+        </div>
+        {key_investors_html}
+        <div style="display: flex; gap: 12px; margin-top: 20px;">
+            <div style="flex: 1;">
+                {website_button_html}
+            </div>
+            <div style="flex: 1;">
+                {story_button_html}
+            </div>
+        </div>
+    </div>
+    """
+    
+    st.markdown(card_html_template.format(
+        company_name=company_name,
+        round_name=round_name,
+        round_color=round_color,
+        amount_display=amount_display,
+        date_display=date_display,
+        description_display=description_display,
+        company_type_display=company_type_display,
+        investors_text=investors_text,
+        source_display=source_display,
+        key_investors_html=key_investors_html,
+        website_button_html=website_button_html,
+        story_button_html=story_button_html
+    ), unsafe_allow_html=True)
 
 def display_funding_data(companies: List[Dict[str, Any]], view_mode: str = "cards"):
     """

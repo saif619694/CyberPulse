@@ -19,7 +19,7 @@ from app.frontend.utils.api_client import api_client
 from app.frontend.utils.formatters import display_loading_animation
 from app.shared.config import Config
 
-# Page configuration
+# Page configuration with better icon
 st.set_page_config(
     page_title="CyberPulse - Funding Intelligence",
     page_icon="🛡️",
@@ -74,6 +74,28 @@ def load_custom_css():
         margin-bottom: 30px;
         text-align: center;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    
+    .logo-container {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #00ff88 0%, #00ccff 100%);
+        border-radius: 50%;
+        margin-bottom: 20px;
+        position: relative;
+        box-shadow: 0 0 30px rgba(0, 255, 136, 0.4);
+    }
+    
+    .logo-icon {
+        font-size: 2.5rem;
+        background: linear-gradient(135deg, #000000 0%, #333333 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
     }
     
     .header-title {
@@ -331,15 +353,15 @@ def initialize_session_state():
             st.session_state[key] = value
 
 def display_professional_header():
-    """Display professional header with integrated stats"""
+    """Display professional header with enhanced logo"""
     
-    # Header section
+    # Header section with improved logo
     st.markdown("""
     <div class="professional-header">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 24px;">
-            <div style="font-size: 3rem;">🛡️</div>
-            <h1 class="header-title">CYBERPULSE</h1>
+        <div class="logo-container">
+            <div class="logo-icon">🛡️</div>
         </div>
+        <h1 class="header-title">CYBERPULSE</h1>
         <p class="header-subtitle">Real-time cybersecurity funding intelligence and market analytics</p>
     </div>
     """, unsafe_allow_html=True)
@@ -348,7 +370,7 @@ def display_professional_header():
     col1, col2, col3 = st.columns([2, 1, 2])
     
     with col2:
-        if st.button("🔄 Refresh Data", use_container_width=True, help="Collect latest funding data"):
+        if st.button("🔄 Refresh Data", key="header_refresh", use_container_width=True, help="Collect latest funding data"):
             with st.spinner("🔄 Collecting fresh intelligence..."):
                 try:
                     result = api_client.trigger_data_collection()
@@ -428,7 +450,8 @@ def display_control_panel():
             value=st.session_state.search_term,
             placeholder="Search companies, descriptions, technologies...",
             help="Search across company names, descriptions, and company types",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="main_search"
         )
     
     with col2:
@@ -448,7 +471,8 @@ def display_control_panel():
             round_options,
             index=round_options.index(current_round_display) if current_round_display in round_options else 0,
             help="Filter by funding round type",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="main_filter"
         )
         
         # Convert back to API format
@@ -467,7 +491,8 @@ def display_control_panel():
                 "date": "📅 Date",
                 "company_name": "🏢 Company Name", 
                 "amount": "💰 Funding Amount"
-            }[x]
+            }[x],
+            key="main_sort_field"
         )
     
     with col2:
@@ -475,7 +500,8 @@ def display_control_panel():
             "Order",
             ["desc", "asc"],
             index=0 if st.session_state.sort_direction == "desc" else 1,
-            format_func=lambda x: "📉 Newest First" if x == "desc" else "📈 Oldest First"
+            format_func=lambda x: "📉 Newest First" if x == "desc" else "📈 Oldest First",
+            key="main_sort_direction"
         )
     
     with col3:
@@ -483,7 +509,8 @@ def display_control_panel():
             "Items per page",
             [6, 12, 24, 48],
             index=[6, 12, 24, 48].index(st.session_state.items_per_page),
-            help="Number of companies to display per page"
+            help="Number of companies to display per page",
+            key="main_items_per_page"
         )
         st.session_state.items_per_page = items_per_page
     
@@ -496,7 +523,8 @@ def display_control_panel():
                 "cards": "📋 Cards",
                 "table": "📊 Table",
                 "chart": "📈 Charts"
-            }[x]
+            }[x],
+            key="main_view_mode"
         )
         st.session_state.view_mode = view_mode
     
@@ -535,20 +563,23 @@ def fetch_funding_data():
         st.error(f"Failed to fetch data: {str(e)}")
         return None
 
-def display_pagination_controls(current_page, total_pages):
-    """Display pagination controls"""
+def display_pagination_controls(current_page, total_pages, location="top"):
+    """Display pagination controls with unique keys based on location"""
     if total_pages <= 1:
         return
+    
+    # Use location to make keys unique
+    key_prefix = f"pagination_{location}"
     
     col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
     
     with col1:
-        if st.button("⏮️ First", disabled=(current_page <= 1)):
+        if st.button("⏮️ First", disabled=(current_page <= 1), key=f"{key_prefix}_first"):
             st.session_state.current_page = 1
             st.rerun()
     
     with col2:
-        if st.button("◀️ Previous", disabled=(current_page <= 1)):
+        if st.button("◀️ Previous", disabled=(current_page <= 1), key=f"{key_prefix}_prev"):
             st.session_state.current_page = current_page - 1
             st.rerun()
     
@@ -561,12 +592,12 @@ def display_pagination_controls(current_page, total_pages):
         """, unsafe_allow_html=True)
     
     with col4:
-        if st.button("▶️ Next", disabled=(current_page >= total_pages)):
+        if st.button("▶️ Next", disabled=(current_page >= total_pages), key=f"{key_prefix}_next"):
             st.session_state.current_page = current_page + 1
             st.rerun()
     
     with col5:
-        if st.button("⏭️ Last", disabled=(current_page >= total_pages)):
+        if st.button("⏭️ Last", disabled=(current_page >= total_pages), key=f"{key_prefix}_last"):
             st.session_state.current_page = total_pages
             st.rerun()
 
@@ -613,8 +644,8 @@ def main():
             </div>
             """, unsafe_allow_html=True)
         
-        # Pagination controls
-        display_pagination_controls(current_page, total_pages)
+        # Top pagination controls
+        display_pagination_controls(current_page, total_pages, location="top")
         
         # Display data
         st.markdown("---")
@@ -623,7 +654,7 @@ def main():
         # Bottom pagination for long lists
         if total_pages > 1 and len(companies) > 6:
             st.markdown("---")
-            display_pagination_controls(current_page, total_pages)
+            display_pagination_controls(current_page, total_pages, location="bottom")
     else:
         display_no_data_message()
     
