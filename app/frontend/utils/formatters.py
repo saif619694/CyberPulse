@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import datetime
 from typing import Dict, Any
+import random
 
 def format_amount(amount: int) -> str:
     """Format a numeric amount into a readable string with K/M/B suffix"""
@@ -24,21 +25,23 @@ def format_date(date_str: str) -> str:
 def get_round_color(round_name: str) -> str:
     """Get color for funding round badge"""
     colors = {
-        'Pre-Seed': '#ff6b35',      # orange
-        'Seed': '#00ff88',          # green
-        'Series A': '#00ccff',      # cyan
-        'Series B': '#ff4081',      # pink
-        'Series C': '#ffa726',      # amber
-        'Series D': '#ab47bc',      # purple
-        'Series E': '#26a69a',      # teal
-        'Growth': '#66bb6a',        # light green
-        'Late Stage': '#ef5350',    # red
-        'IPO': '#ffee58',           # yellow
-        'Acquisition': '#42a5f5',   # blue
-        'Post-IPO Debt': '#ec407a', # pink
-        'Venture': '#26c6da',       # cyan
+        'Pre-Seed': '#f59e0b',      # amber
+        'Seed': '#10b981',          # green
+        'Series A': '#3b82f6',      # blue
+        'Series B': '#8b5cf6',      # purple
+        'Series C': '#f97316',      # orange
+        'Series D': '#ec4899',      # pink
+        'Series E': '#14b8a6',      # teal
+        'Growth': '#84cc16',        # lime
+        'Late Stage': '#ef4444',    # red
+        'IPO': '#f59e0b',           # yellow
+        'Acquisition': '#06b6d4',   # cyan
+        'Venture': "#07084e",       # indigo
+        'Equity Crowdfunding': "#544005",
+
     }
-    return colors.get(round_name, '#888888')  # default gray
+    # Return random color if round name not found
+    return colors.get(round_name, f'#{random.randint(0, 0xFFFFFF):06x}')
 
 def display_loading_animation():
     """Display a professional loading animation"""
@@ -50,33 +53,21 @@ def display_loading_animation():
         align-items: center; 
         height: 200px; 
         gap: 20px;
-        background: linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 100%);
-        border: 1px solid #333333;
-        border-radius: 16px;
-        margin: 32px 0;
     ">
         <div style="
-            width: 64px;
-            height: 64px;
-            border: 4px solid #333333;
-            border-top: 4px solid #00ff88;
+            width: 48px;
+            height: 48px;
+            border: 3px solid #1f2937;
+            border-top: 3px solid #8b5cf6;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         "></div>
         <div style="
-            color: #00ff88; 
-            font-size: 1.2rem; 
-            font-weight: 600;
-            text-align: center;
+            color: #8b5cf6; 
+            font-size: 1rem; 
+            font-weight: 500;
         ">
-            ⚡ Loading Intelligence Data...
-        </div>
-        <div style="
-            color: #888888; 
-            font-size: 0.9rem; 
-            text-align: center;
-        ">
-            Processing cybersecurity funding information
+            Loading intelligence data...
         </div>
     </div>
     
@@ -85,11 +76,6 @@ def display_loading_animation():
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
-    
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.6; }
-    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -97,22 +83,22 @@ def display_success_message(message: str, details: str = ""):
     """Display a professional success message"""
     st.markdown(f"""
     <div style="
-        background: linear-gradient(145deg, #0a2e0a 0%, #1a4d1a 100%);
-        border: 1px solid #00ff88;
-        border-radius: 12px;
-        padding: 20px;
+        background: #065f46;
+        border: 1px solid #10b981;
+        border-radius: 8px;
+        padding: 16px;
         margin: 16px 0;
-        color: #00ff88;
+        color: #10b981;
         display: flex;
         align-items: center;
         gap: 12px;
     ">
-        <div style="font-size: 1.5rem;">✅</div>
+        <div style="font-size: 1.25rem;">✅</div>
         <div>
-            <div style="font-weight: 600; font-size: 1rem; margin-bottom: 4px;">
+            <div style="font-weight: 500;">
                 {message}
             </div>
-            {f'<div style="font-size: 0.9rem; color: #88cc88;">{details}</div>' if details else ''}
+            {f'<div style="font-size: 0.875rem; color: #6ee7b7; margin-top: 4px;">{details}</div>' if details else ''}
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -121,22 +107,22 @@ def display_error_message(message: str, details: str = ""):
     """Display a professional error message"""
     st.markdown(f"""
     <div style="
-        background: linear-gradient(145deg, #2e0a0a 0%, #4d1a1a 100%);
-        border: 1px solid #ff4444;
-        border-radius: 12px;
-        padding: 20px;
+        background: #7f1d1d;
+        border: 1px solid #ef4444;
+        border-radius: 8px;
+        padding: 16px;
         margin: 16px 0;
-        color: #ff8888;
+        color: #ef4444;
         display: flex;
         align-items: center;
         gap: 12px;
     ">
-        <div style="font-size: 1.5rem;">❌</div>
+        <div style="font-size: 1.25rem;">❌</div>
         <div>
-            <div style="font-weight: 600; font-size: 1rem; margin-bottom: 4px;">
+            <div style="font-weight: 500;">
                 {message}
             </div>
-            {f'<div style="font-size: 0.9rem; color: #cc8888;">{details}</div>' if details else ''}
+            {f'<div style="font-size: 0.875rem; color: #fca5a5; margin-top: 4px;">{details}</div>' if details else ''}
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -145,22 +131,22 @@ def display_info_message(message: str, details: str = ""):
     """Display a professional info message"""
     st.markdown(f"""
     <div style="
-        background: linear-gradient(145deg, #0a1a2e 0%, #1a2e4d 100%);
-        border: 1px solid #00ccff;
-        border-radius: 12px;
-        padding: 20px;
+        background: #1e3a8a;
+        border: 1px solid #3b82f6;
+        border-radius: 8px;
+        padding: 16px;
         margin: 16px 0;
-        color: #88ccff;
+        color: #3b82f6;
         display: flex;
         align-items: center;
         gap: 12px;
     ">
-        <div style="font-size: 1.5rem;">ℹ️</div>
+        <div style="font-size: 1.25rem;">ℹ️</div>
         <div>
-            <div style="font-weight: 600; font-size: 1rem; margin-bottom: 4px;">
+            <div style="font-weight: 500;">
                 {message}
             </div>
-            {f'<div style="font-size: 0.9rem; color: #aaccdd;">{details}</div>' if details else ''}
+            {f'<div style="font-size: 0.875rem; color: #93bbfe; margin-top: 4px;">{details}</div>' if details else ''}
         </div>
     </div>
     """, unsafe_allow_html=True)
