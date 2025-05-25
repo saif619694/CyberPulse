@@ -10,10 +10,9 @@ from typing import Dict, Any
 
 from app.backend.security_funded import get_data
 from app.backend.database import db_manager
-from app.backend.models import PaginationParams, PaginatedResponse, CompanyData
+from app.backend.models import PaginationParams, PaginatedResponse
 from app.shared.config import Config
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -21,12 +20,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-
-# Configure CORS more specifically
 CORS(app, origins=["*"], methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Content-Type"])
 
 def create_query(search_term: str = None, filter_round: str = None) -> Dict[str, Any]:
-    """Create MongoDB query from search and filter parameters"""
+    """Create optimized MongoDB query"""
     query = {}
     
     if search_term:
@@ -39,12 +36,10 @@ def create_query(search_term: str = None, filter_round: str = None) -> Dict[str,
     if filter_round:
         query['round'] = filter_round
     
-    logger.debug(f"Created query: {query}")
     return query
 
 def format_company_data(doc: Dict[str, Any]) -> Dict[str, Any]:
     """Format MongoDB document for API response"""
-    # Process investors properly
     investors = doc.get('investors', [])
     processed_investors = []
     
@@ -89,7 +84,6 @@ def handle_exception(e):
 def health_check():
     """Enhanced health check endpoint"""
     try:
-        # Test database connection
         db_diagnostics = db_manager.test_connection()
         
         health_status = {
@@ -125,9 +119,6 @@ def health_check():
 def get_funding_data():
     """API endpoint to fetch paginated funding data"""
     try:
-        logger.info("Received funding data request")
-        
-        # Parse query parameters
         params = PaginationParams(
             page=int(request.args.get('page', 1)),
             items_per_page=min(int(request.args.get('itemsPerPage', Config.DEFAULT_PAGE_SIZE)), Config.MAX_PAGE_SIZE),
@@ -137,20 +128,12 @@ def get_funding_data():
             filter_round=request.args.get('filterRound', '').strip() or None
         )
         
-        logger.info(f"Query params: page={params.page}, items_per_page={params.items_per_page}, sort={params.sort_field}, search='{params.search}', filter='{params.filter_round}'")
-        
-        # Build query
         query = create_query(params.search, params.filter_round)
-        
-        # Get total count
         total_count = db_manager.count_documents(query)
-        logger.info(f"Total documents matching query: {total_count}")
         
-        # Calculate pagination
         skip = params.get_skip()
         total_pages = (total_count + params.items_per_page - 1) // params.items_per_page
         
-        # Fetch data
         documents = db_manager.find_with_pagination(
             query, 
             params.sort_field, 
@@ -159,12 +142,8 @@ def get_funding_data():
             params.items_per_page
         )
         
-        logger.info(f"Retrieved {len(documents)} documents")
-        
-        # Format data
         formatted_data = [format_company_data(doc) for doc in documents]
         
-        # Create response
         response = PaginatedResponse(
             data=formatted_data,
             total_count=total_count,
@@ -177,7 +156,6 @@ def get_funding_data():
         
     except Exception as e:
         logger.error(f"Error fetching funding data: {str(e)}")
-        logger.error(traceback.format_exc())
         return jsonify({
             'error': str(e),
             'type': 'funding_data_error'
@@ -187,12 +165,10 @@ def get_funding_data():
 def get_funding_rounds():
     """API endpoint to get unique funding rounds for filter"""
     try:
-        logger.info("Fetching funding rounds")
         rounds = db_manager.distinct('round')
-        rounds = [r for r in rounds if r]  # Filter out empty values
+        rounds = [r for r in rounds if r]
         rounds.sort()
         
-        logger.info(f"Found {len(rounds)} unique funding rounds")
         return jsonify({'rounds': rounds}), 200
         
     except Exception as e:
@@ -210,7 +186,6 @@ def api_get_data():
         result = get_data()
         
         message = f"Data collection complete. Processed: {result['processed']}, Skipped: {result['skipped']}, Errors: {result['errors']}"
-        logger.info(message)
         
         return jsonify({
             "message": message,
@@ -219,7 +194,6 @@ def api_get_data():
         
     except Exception as e:
         logger.error(f"Error in data collection: {str(e)}")
-        logger.error(traceback.format_exc())
         return jsonify({
             "error": str(e),
             "type": "data_collection_error"
@@ -229,19 +203,15 @@ def api_get_data():
 def get_stats():
     """API endpoint to get database statistics"""
     try:
-        logger.info("Fetching database statistics")
-        
         total_companies = db_manager.count_documents({})
-        total_funding = 0
         
-        # Calculate total funding (this might be expensive for large datasets)
+        # Optimized aggregation for total funding
+        collection = db_manager.get_collection()
         pipeline = [
             {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
         ]
-        collection = db_manager.get_collection()
         result = list(collection.aggregate(pipeline))
-        if result:
-            total_funding = result[0]['total']
+        total_funding = result[0]['total'] if result else 0
         
         # Get funding by type
         type_pipeline = [
@@ -256,7 +226,6 @@ def get_stats():
             'funding_by_type': type_stats
         }
         
-        logger.info(f"Stats: {total_companies} companies, ${total_funding:,} total funding")
         return jsonify(stats), 200
         
     except Exception as e:
@@ -268,7 +237,7 @@ def get_stats():
 
 @app.route('/api/debug', methods=['GET'])
 def debug_info():
-    """Debug endpoint to check configuration and connections"""
+    """Debug endpoint for troubleshooting"""
     try:
         debug_data = {
             'config': {
@@ -302,13 +271,9 @@ def create_app():
     """Create and configure Flask app"""
     logger.info("Initializing Flask application...")
     
-    # Initialize database connection
-    logger.info("Testing database connection...")
     if not db_manager.connect():
         logger.error("Failed to connect to database - API will continue but may not function properly")
-        # Don't raise exception - let the app start for debugging
     
-    # Initialize and start the scheduler
     logger.info("Starting background scheduler...")
     scheduler = BackgroundScheduler()
     scheduler.add_job(
@@ -319,12 +284,9 @@ def create_app():
         replace_existing=True
     )
     scheduler.start()
-    
-    # Shut down the scheduler when exiting the app
     atexit.register(lambda: scheduler.shutdown())
     
     logger.info(f"Flask app created and configured on {Config.FLASK_HOST}:{Config.FLASK_PORT}")
-    logger.info(f"API base URL: {Config.API_BASE_URL}")
     return app
 
 if __name__ == '__main__':

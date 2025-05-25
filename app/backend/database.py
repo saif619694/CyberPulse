@@ -2,7 +2,6 @@ from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
 from app.shared.config import Config
 import logging
-import time
 
 logger = logging.getLogger(__name__)
 
@@ -14,36 +13,31 @@ class DatabaseManager:
         self._connected = False
         
     def connect(self):
-        """Establish database connection with better error handling"""
+        """Establish database connection with optimized error handling"""
         try:
-            logger.info(f"Connecting to MongoDB at: {Config.MONGO_URI[:50]}...")
+            logger.info(f"Connecting to MongoDB...")
             
-            # Create client with specific timeout settings
             self.client = MongoClient(
                 Config.MONGO_URI,
-                serverSelectionTimeoutMS=10000,  # 10 second timeout
+                serverSelectionTimeoutMS=10000,
                 connectTimeoutMS=10000,
                 socketTimeoutMS=10000,
                 maxPoolSize=10
             )
             
-            # Test the connection
             self.client.admin.command('ping')
             
             self.db = self.client[Config.DB_NAME]
             self.collection = self.db[Config.COLLECTION_NAME]
             self._connected = True
             
-            # Log connection success with some stats
             doc_count = self.collection.count_documents({})
-            logger.info(f"Successfully connected to MongoDB. Database: {Config.DB_NAME}, Collection: {Config.COLLECTION_NAME}")
-            logger.info(f"Total documents in collection: {doc_count}")
+            logger.info(f"Connected to MongoDB. Documents: {doc_count}")
             
             return True
             
         except ServerSelectionTimeoutError as e:
             logger.error(f"MongoDB server selection timeout: {str(e)}")
-            logger.error("Check if MongoDB Atlas is accessible and credentials are correct")
             return False
             
         except ConnectionFailure as e:
@@ -52,7 +46,6 @@ class DatabaseManager:
             
         except Exception as e:
             logger.error(f"Failed to connect to MongoDB: {str(e)}")
-            logger.error(f"MongoDB URI (masked): {Config.MONGO_URI[:30]}...")
             return False
     
     def is_connected(self):
@@ -76,7 +69,6 @@ class DatabaseManager:
     def get_collection(self):
         """Get the collection object with connection check"""
         if not self.is_connected():
-            logger.info("Database not connected, attempting to reconnect...")
             if not self.connect():
                 raise Exception("Cannot establish database connection")
         return self.collection
@@ -102,11 +94,10 @@ class DatabaseManager:
             raise
     
     def find_with_pagination(self, query, sort_field, sort_direction, skip, limit):
-        """Find documents with pagination and sorting"""
+        """Find documents with optimized pagination and sorting"""
         try:
             collection = self.get_collection()
             
-            # Map sort fields
             sort_field_map = {
                 'company_name': 'company_name',
                 'amount': 'amount',
@@ -116,12 +107,9 @@ class DatabaseManager:
             mongo_sort_field = sort_field_map.get(sort_field, 'date')
             sort_order = DESCENDING if sort_direction == 'desc' else ASCENDING
             
-            logger.debug(f"Executing query: {query}, sort: {mongo_sort_field} {sort_direction}, skip: {skip}, limit: {limit}")
-            
             cursor = collection.find(query).sort(mongo_sort_field, sort_order).skip(skip).limit(limit)
             results = list(cursor)
             
-            logger.debug(f"Query returned {len(results)} documents")
             return results
             
         except Exception as e:
@@ -132,9 +120,7 @@ class DatabaseManager:
         """Count documents matching query"""
         try:
             collection = self.get_collection()
-            count = collection.count_documents(query)
-            logger.debug(f"Count query returned: {count}")
-            return count
+            return collection.count_documents(query)
         except Exception as e:
             logger.error(f"Error counting documents: {str(e)}")
             raise
@@ -144,7 +130,6 @@ class DatabaseManager:
         try:
             collection = self.get_collection()
             values = collection.distinct(field)
-            logger.debug(f"Distinct query for '{field}' returned {len(values)} unique values")
             return values
         except Exception as e:
             logger.error(f"Error getting distinct values: {str(e)}")
