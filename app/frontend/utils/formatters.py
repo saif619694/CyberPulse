@@ -3,16 +3,16 @@ from datetime import datetime
 from typing import Dict, Any
 import random
 
-def format_amount(amount: int) -> str:
-    """Format a numeric amount into a readable string with K/M/B suffix"""
-    if amount >= 1000000000:
-        return f"${amount / 1000000000:.1f}B"
-    elif amount >= 1000000:
-        return f"${amount / 1000000:.1f}M"
-    elif amount >= 1000:
-        return f"${amount / 1000:.0f}K"
-    else:
-        return f"${amount:,}"
+def format_amount(amount: Any) -> str:
+    try:
+        num_amount = float(amount) if amount is not None else 0
+        num_amount = int(num_amount)
+        if num_amount >= 1000000000: return f"${num_amount / 1000000000:.1f}B"
+        if num_amount >= 1000000: return f"${num_amount / 1000000:.1f}M"
+        if num_amount >= 1000: return f"${num_amount / 1000:.0f}K"
+        if num_amount > 0: return f"${num_amount:,}"
+        return "Undisclosed"
+    except (ValueError, TypeError): return "Undisclosed"
 
 def format_date(date_str: str) -> str:
     """Format date string for display"""
@@ -25,7 +25,7 @@ def format_date(date_str: str) -> str:
 def get_round_color(round_name: str) -> str:
     """Get color for funding round badge"""
     colors = {
-        'Pre-Seed': '#f59e0b',      # amber
+        'Pre-seed': '#f59e0b',      # amber
         'Seed': '#10b981',          # green
         'Series A': '#3b82f6',      # blue
         'Series B': '#8b5cf6',      # purple
@@ -36,8 +36,8 @@ def get_round_color(round_name: str) -> str:
         'Late Stage': '#ef4444',    # red
         'IPO': '#f59e0b',           # yellow
         'Acquisition': '#06b6d4',   # cyan
-        'Venture': "#07084e",       # indigo
-        'Equity Crowdfunding': "#544005",
+        'Venture': "#ff0990",       # indigo
+        'Equity Crowdfunding': "#00FFF2",
 
     }
     # Return random color if round name not found

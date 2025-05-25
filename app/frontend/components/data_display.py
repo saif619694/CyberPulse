@@ -7,6 +7,7 @@ import html
 from typing import List, Dict, Any
 from datetime import datetime
 from bs4 import BeautifulSoup
+from app.frontend.utils.formatters import format_amount, format_date, get_round_color
 
 # --- Helper Functions (largely unchanged, ensure they are robust) ---
 def clean_html_text(text: str) -> str:
@@ -27,46 +28,6 @@ def clean_html_text(text: str) -> str:
         cleaned_text = cleaned_text[:197] + '...'
     return cleaned_text
 
-def format_amount(amount: Any) -> str:
-    try:
-        num_amount = float(amount) if amount is not None else 0
-        num_amount = int(num_amount)
-        if num_amount >= 1000000000: return f"${num_amount / 1000000000:.1f}B"
-        if num_amount >= 1000000: return f"${num_amount / 1000000:.1f}M"
-        if num_amount >= 1000: return f"${num_amount / 1000:.0f}K"
-        if num_amount > 0: return f"${num_amount:,}"
-        return "Undisclosed"
-    except (ValueError, TypeError): return "Undisclosed"
-
-def format_date(date_str: Any) -> str:
-    if not date_str: return ""
-    if isinstance(date_str, datetime):
-        return date_str.strftime("%b %d, %Y")
-    if not isinstance(date_str, str):
-        return str(date_str)
-
-    try:
-        date_obj = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-        return date_obj.strftime("%b %d, %Y")
-    except ValueError:
-        try:
-            return datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S").strftime("%b %d, %Y")
-        except ValueError:
-            return date_str
-
-def get_round_color(round_name: str) -> str:
-    if not round_name or not isinstance(round_name, str): return '#6b7280'
-    round_lower = round_name.lower()
-    if 'seed' in round_lower: return '#10b981'
-    if 'series a' in round_lower: return '#3b82f6'
-    if 'series b' in round_lower: return '#8b5cf6'
-    if 'series c' in round_lower: return '#f59e0b'
-    if 'series d' in round_lower: return '#ec4899'
-    if 'series e' in round_lower: return '#14b8a6'
-    if 'growth' in round_lower: return '#84cc16'
-    return '#6b7280' # Default for "Unknown" or other types
-
-# --- Modified Approach for Displaying Funding Card with Static Dimensions & New Changes ---
 def display_funding_card(company: Dict[str, Any]):
     """Display a single funding card with consistent height and requested visual changes."""
 
